@@ -1,0 +1,7 @@
+if command -v nix >/dev/null 2>&1; then
+  use flake
+else
+  echo "nix NOT installed in your system"
+  echo "Please run this command for install nix"
+  echo -e "\e[1;32mcurl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install\e[0m"
+fi
