@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ILoginResponse, IUser } from './user.model';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('users')
 export class UserController {
@@ -14,7 +15,7 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
-  @Post()
+  @Post('login')
   async login(@Body() loginUserDto: LoginUserDto): Promise<ILoginResponse> {
     const jwt = await this.userService.login(loginUserDto);
     return {

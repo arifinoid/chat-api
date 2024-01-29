@@ -18,46 +18,58 @@ export class UserService {
     private authService: AuthService,
   ) {}
   async create(user: IUser) {
-    const isUserExists = await this.isMailExist(user.email);
-    if (isUserExists) {
-      throw new HttpException('Email already exists', HttpStatus.CONFLICT);
-    } else {
-      const passHash = await this.hashPassword(user.password);
-      user.password = passHash;
+    try {
+      const isUserExists = await this.isMailExist(user.email);
+      if (isUserExists) {
+        throw new HttpException('Email already exists', HttpStatus.CONFLICT);
+      } else {
+        const passHash = await this.hashPassword(user.password);
+        user.password = passHash;
 
-      const createdUser = await this.userRepository.save(
-        this.userRepository.create(user),
-      );
-      return this.findOne(createdUser.id);
+        const createdUser = await this.userRepository.save(
+          this.userRepository.create(user),
+        );
+        return this.findOne(createdUser.id);
+      }
+    } catch {
+      throw new HttpException('Email already exists', HttpStatus.CONFLICT);
     }
   }
 
   async login(user: IUser): Promise<string> {
-    const foundUser: IUser = await this.findByEmail(user.email.toLowerCase());
-    if (foundUser) {
-      const matches: boolean = await this.validatePassword(
-        user.password,
-        foundUser.password,
-      );
-      if (matches) {
-        const payload: IUser = await this.findOne(foundUser.id);
-        return this.authService.generateJwt(payload);
+    try {
+      const foundUser: IUser = await this.findByEmail(user.email.toLowerCase());
+      if (foundUser) {
+        const matches: boolean = await this.validatePassword(
+          user.password,
+          foundUser.password,
+        );
+        if (matches) {
+          const payload: IUser = await this.findOne(foundUser.id);
+          return this.authService.generateJwt(payload);
+        } else {
+          throw new HttpException(
+            'Login was not successfull, wrong credentials',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
       } else {
         throw new HttpException(
           'Login was not successfull, wrong credentials',
           HttpStatus.UNAUTHORIZED,
         );
       }
-    } else {
-      throw new HttpException(
-        'Login was not successfull, wrong credentials',
-        HttpStatus.UNAUTHORIZED,
-      );
+    } catch {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
   }
 
   async findAll(options: IPaginationOptions): Promise<Pagination<IUser>> {
     return paginate<User>(this.userRepository, options);
+  }
+
+  async getOne(id: number): Promise<IUser> {
+    return await this.userRepository.findOne({ where: { id } });
   }
 
   private async findByEmail(email: string): Promise<IUser> {
