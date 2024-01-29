@@ -1,32 +1,30 @@
 import {
   WebSocketGateway,
   SubscribeMessage,
-  MessageBody,
   WebSocketServer,
-  ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './services/chat.service';
-import { CreateChatDto } from './dto/create-chat.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
 import { IUser } from 'src/user/user.model';
-import { UnauthorizedException } from '@nestjs/common';
+import { OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { RoomService } from './services/room.service';
-import { IRoom } from './chat.model';
+import { IChat, IConnectedUser, IJoinedRoom, IRoom } from './chat.model';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
-
-const CHAT_EVENT_NAME = 'chat';
-const TYPING_EVENT_NAME = 'typing';
+import { ConnectedUserService } from './services/connected-user.service';
+import { JoinedRoomService } from './services/joined-room.service';
 
 @WebSocketGateway({
   cors: {
     origin: '*',
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+{
   @WebSocketServer()
   server: Server;
 
@@ -35,7 +33,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private authService: AuthService,
     private userService: UserService,
     private roomService: RoomService,
+    private connectedUserService: ConnectedUserService,
+    private joinedRoomService: JoinedRoomService,
   ) {}
+
+  async onModuleInit() {
+    await this.connectedUserService.deleteAll();
+    await this.joinedRoomService.deleteAll();
+  }
 
   async handleConnection(socket: Socket) {
     try {
@@ -51,19 +56,72 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         limit: 20,
       });
 
+      await this.connectedUserService.create({ socketId: socket.id, user });
+
       return this.server.to(socket.id).emit('rooms', rooms);
     } catch {
       return this.disconnect(socket);
     }
   }
 
-  handleDisconnect(socket: Socket) {
+  async handleDisconnect(socket: Socket) {
+    await this.connectedUserService.deleteBySocketId(socket.id);
     this.disconnect(socket);
   }
 
   @SubscribeMessage('createRoom')
   async onCreateRoom(socket: Socket, room: IRoom) {
-    return this.roomService.createRoom(room, socket.data.user);
+    const createdRoom: IRoom = await this.roomService.createRoom(
+      room,
+      socket.data.user,
+    );
+
+    for (const user of createdRoom.users) {
+      const connections: IConnectedUser[] =
+        await this.connectedUserService.findByUser(user);
+      const rooms = await this.roomService.getRoomsForUser(user.id, {
+        page: 1,
+        limit: 10,
+      });
+
+      for (const connection of connections) {
+        this.server.to(connection.socketId).emit('rooms', rooms);
+      }
+    }
+  }
+
+  @SubscribeMessage('joinRoom')
+  async onJoinRoom(socket: Socket, room: IRoom) {
+    const chats = await this.chatService.findChatsByRoom(room, {
+      limit: 10,
+      page: 1,
+    });
+
+    await this.joinedRoomService.create({
+      socketId: socket.id,
+      user: socket.data.user,
+      room,
+    });
+    this.server.to(socket.id).emit('chats', chats);
+  }
+
+  @SubscribeMessage('leaveRoom')
+  async onLeaveRoom(socket: Socket) {
+    await this.joinedRoomService.deleteBySocketId(socket.id);
+  }
+
+  @SubscribeMessage('addChat')
+  async onAddMessage(socket: Socket, chat: IChat) {
+    const createdChat: IChat = await this.chatService.create({
+      ...chat,
+      user: socket.data.user,
+    });
+    const room: IRoom = await this.roomService.getRoom(createdChat.room.id);
+    const joinedUsers: IJoinedRoom[] =
+      await this.joinedRoomService.findByRoom(room);
+    for (const user of joinedUsers) {
+      this.server.to(user.socketId).emit('chatAdded', createdChat);
+    }
   }
 
   @SubscribeMessage('paginateRoom')
@@ -74,38 +132,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     return this.server.to(socket.id).emit('rooms', rooms);
-  }
-
-  @SubscribeMessage('createChat')
-  async create(
-    @MessageBody() createChatDto: CreateChatDto,
-    @ConnectedSocket() client: Socket,
-  ) {
-    const chat = await this.chatService.create(createChatDto, client.id);
-    this.server.emit(CHAT_EVENT_NAME, chat);
-    return chat;
-  }
-
-  @SubscribeMessage('findAllChat')
-  findAll() {
-    return this.chatService.findAll();
-  }
-
-  @SubscribeMessage('joinChat')
-  joinChat(
-    @MessageBody('name') name: string,
-    @ConnectedSocket() client: Socket,
-  ) {
-    return this.chatService.identify(name, client.id);
-  }
-
-  @SubscribeMessage('userTyping')
-  async userTyping(
-    @MessageBody('isTyping') isTyping: boolean,
-    @ConnectedSocket() client: Socket,
-  ) {
-    const name = await this.chatService.getUserName(client.id);
-    client.broadcast.emit(TYPING_EVENT_NAME, { name, isTyping });
   }
 
   private disconnect(socket: Socket) {

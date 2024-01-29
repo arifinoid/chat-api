@@ -1,42 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { Socket } from 'socket.io';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {
+  IPaginationOptions,
+  Pagination,
+  paginate,
+} from 'nestjs-typeorm-paginate';
 import { Chat } from '../entities/chat.entity';
-import { CreateChatDto } from '../dto/create-chat.dto';
+import { IChat, IRoom } from '../chat.model';
 
 @Injectable()
 export class ChatService {
-  chats: Chat[] = [{ id: 1, name: 'slamet', text: 'hello' }];
-  user: Record<string, any> = {};
+  constructor(
+    @InjectRepository(Chat)
+    private readonly chatRepo: Repository<Chat>,
+  ) {}
 
-  create(createChatDto: CreateChatDto, clientId: Socket['id']) {
-    const chat = {
-      id: this.user[clientId].length,
-      name: this.user[clientId],
-      text: createChatDto.text,
-    };
-    this.chats.push(chat);
-
-    return chat;
+  async create(chat: IChat): Promise<IChat> {
+    return this.chatRepo.save(this.chatRepo.create(chat));
   }
 
-  findAll() {
-    return this.chats;
-  }
+  async findChatsByRoom(
+    room: IRoom,
+    options: IPaginationOptions,
+  ): Promise<Pagination<IChat>> {
+    const q = this.chatRepo
+      .createQueryBuilder('chat')
+      .leftJoin('chat.room', 'room')
+      .where('room.id = :roomId', { roomId: room.id })
+      .leftJoinAndSelect('chat.user', 'user')
+      .orderBy('chat.created_at', 'DESC');
 
-  getUserName(clientId: Socket['id']) {
-    return this.user[clientId];
-  }
-
-  identify(name: string, clientId: Socket['id']) {
-    this.user[clientId] = name;
-    return Object.values(this.user);
-  }
-
-  joinChat() {
-    return `This action allows user to join specific chat room`;
-  }
-
-  userTyping() {
-    return `This action tells user that specific user is typing`;
+    return paginate(q, options);
   }
 }
