@@ -24,6 +24,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+      - /app/node_modules/
+    command: yarn start:dev
     env_file:
       - .env
     ports:
