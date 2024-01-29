@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import {
   IPaginationOptions,
   Pagination,
@@ -14,7 +14,7 @@ import { AuthService } from 'src/auth/auth.service';
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userRepo: Repository<User>,
     private authService: AuthService,
   ) {}
   async create(user: IUser) {
@@ -26,8 +26,8 @@ export class UserService {
         const passHash = await this.hashPassword(user.password);
         user.password = passHash;
 
-        const createdUser = await this.userRepository.save(
-          this.userRepository.create(user),
+        const createdUser = await this.userRepo.save(
+          this.userRepo.create(user),
         );
         return this.findOne(createdUser.id);
       }
@@ -65,26 +65,34 @@ export class UserService {
   }
 
   async findAll(options: IPaginationOptions): Promise<Pagination<IUser>> {
-    return paginate<User>(this.userRepository, options);
+    return paginate<User>(this.userRepo, options);
   }
 
   async getOne(id: number): Promise<IUser> {
-    return await this.userRepository.findOne({ where: { id } });
+    return await this.userRepo.findOne({ where: { id } });
+  }
+
+  async findByUsername(username: string): Promise<IUser[]> {
+    return await this.userRepo.find({
+      where: {
+        username: ILike(`%${username}%`),
+      },
+    });
   }
 
   private async findByEmail(email: string): Promise<IUser> {
-    return this.userRepository.findOne({
+    return this.userRepo.findOne({
       where: { email },
       select: ['id', 'email', 'username', 'password'],
     });
   }
 
   private async findOne(id: number): Promise<IUser> {
-    return this.userRepository.findOne({ where: { id } });
+    return this.userRepo.findOne({ where: { id } });
   }
 
   private async isMailExist(email: string) {
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepo.findOne({ where: { email } });
     return Boolean(user);
   }
 
@@ -95,7 +103,7 @@ export class UserService {
   private async validatePassword(
     password: string,
     passHash: string,
-  ): Promise<any> {
+  ): Promise<boolean> {
     return this.authService.comparePasswords(password, passHash);
   }
 }
