@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ILoginResponse, IUser } from './user.model';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('users')
 export class UserController {
@@ -22,6 +23,7 @@ export class UserController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(
     @Query('page') page: number = 1,
@@ -31,6 +33,7 @@ export class UserController {
     return this.userService.findAll({ page, limit });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('username')
   async findByUsername(@Query('username') username: string): Promise<IUser[]> {
     return this.userService.findByUsername(username);
