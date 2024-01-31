@@ -13,7 +13,6 @@ export class UserController {
   constructor(
     @Inject('SharedServiceInterface')
     private readonly sharedService: SharedService,
-    @Inject('UserServiceInterface')
     private readonly userService: UserService,
   ) {}
 

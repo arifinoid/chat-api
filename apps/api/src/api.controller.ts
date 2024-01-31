@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
+import { AuthGuard } from '@app/shared';
+import { Body, Controller, Get, Inject, Post, UseGuards } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { CreateUserDto } from 'apps/auth/src/dto/create-user.dto';
 import { LoginUserDto } from 'apps/auth/src/dto/login-user.dto';
@@ -7,6 +8,7 @@ import { LoginUserDto } from 'apps/auth/src/dto/login-user.dto';
 export class ApiController {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authService: ClientProxy,
+    @Inject('USER_SERVICE') private readonly userService: ClientProxy,
   ) {}
 
   @Get()
@@ -16,9 +18,10 @@ export class ApiController {
     };
   }
 
+  @UseGuards(AuthGuard)
   @Get('users')
   getUsers() {
-    return this.authService.send({ cmd: 'get-users' }, {});
+    return this.userService.send({ cmd: 'get-users' }, {});
   }
 
   @Post('auth/register')

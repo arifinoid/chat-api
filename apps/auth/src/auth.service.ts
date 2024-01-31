@@ -56,14 +56,20 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-    const isPasswordMatch = this.comparePasswords(password, user.password);
+
+    const isPasswordMatch = await this.comparePasswords(
+      password,
+      user.password,
+    );
+
     if (!isPasswordMatch) {
       throw new UnauthorizedException("password doesn't match!");
     }
 
     const jwt = await this.generateJwt(user);
+    const { password: _, ...rest } = user;
 
-    return { token: jwt, ...user };
+    return { token: jwt, ...rest };
   }
 
   async getUserFromHeader(jwt: string): Promise<UserJwt> {
@@ -88,7 +94,7 @@ export class AuthService {
     password: User['password'],
     storedPasswordHash: string,
   ): Promise<boolean> {
-    return bcrypt.compare(password, storedPasswordHash);
+    return await bcrypt.compare(password, storedPasswordHash);
   }
 
   verifyJwt(jwt: string): Promise<any> {
