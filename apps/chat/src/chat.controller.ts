@@ -2,11 +2,11 @@ import { Controller, Get } from '@nestjs/common';
 import { ChatService } from './chat.service';
 
 @Controller()
-export class AppController {
+export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get()
-  getHello(): Record<string, string> {
+  getHello(): string {
     return this.chatService.getHello();
   }
 }

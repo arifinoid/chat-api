@@ -7,10 +7,8 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Room } from './room.entity';
-import { ConnectedUser } from './connected-user.entity';
-import { JoinedRoom } from './joined-room.entity';
 import { Chat } from './chat.entity';
+import { Conversation } from './conversation.entity';
 
 @Entity()
 export class User {
@@ -26,14 +24,8 @@ export class User {
   @Column()
   password: string;
 
-  @ManyToMany(() => Room, (room) => room.users)
-  rooms: Room[];
-
-  @OneToMany(() => ConnectedUser, (connection) => connection.user)
-  connections: ConnectedUser[];
-
-  @OneToMany(() => JoinedRoom, (joinedRoom) => joinedRoom.room)
-  joinedRooms: JoinedRoom[];
+  @ManyToMany(() => Conversation, (conversation) => conversation.users)
+  conversations: Conversation[];
 
   @OneToMany(() => Chat, (chat) => chat.user)
   chats: Chat[];

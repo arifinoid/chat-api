@@ -7,9 +7,6 @@ import {
   SharedService,
   User,
   UserRepository,
-  JoinedRoom,
-  ConnectedUser,
-  Room,
   Auth,
   DbModule,
 } from '@app/shared';
@@ -30,14 +27,7 @@ import { JwtStrategy } from './jwt.strategy';
     }),
     SharedModule,
     DbModule,
-    TypeOrmModule.forFeature([
-      Auth,
-      User,
-      Chat,
-      JoinedRoom,
-      ConnectedUser,
-      Room,
-    ]),
+    TypeOrmModule.forFeature([Auth, User, Chat]),
   ],
   controllers: [AuthController],
   providers: [

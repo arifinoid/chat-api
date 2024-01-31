@@ -13,10 +13,8 @@ export * from './guards/auth.guard';
 // entities
 export * from './entities/auth.entity';
 export * from './entities/chat.entity';
-export * from './entities/connected-user.entity';
-export * from './entities/joined-room.entity';
-export * from './entities/room.entity';
 export * from './entities/user.entity';
+export * from './entities/conversation.entity';
 
 // models
 export * from './models/chat.model';
@@ -29,6 +27,8 @@ export * from './repositories/chat.repository';
 export * from './repositories/user.repository';
 
 // interface
+export * from './interfaces/chat.repoitory.interface';
+export * from './interfaces/conversation.repository.interface';
 export * from './interfaces/user-jwt.interface';
 export * from './interfaces/user-request.interface';
 export * from './interfaces/user.repository.interface';
