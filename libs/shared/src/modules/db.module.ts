@@ -9,7 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         const getEnv = (key: string) => configService.get(key);
         return {
           type: 'postgres',
-          url: `postgres://${getEnv('POSTGRES_USER')}:${getEnv('POSTGRES_PASSWORD')}@${getEnv('POSTGRES_HOST')}:${getEnv('POSTGRES_PORT')}/${getEnv('POSTGRES_DB')}`,
+          url: `postgresql://${getEnv('POSTGRES_USER')}:${getEnv('POSTGRES_PASSWORD')}@${getEnv('POSTGRES_HOST')}:${getEnv('POSTGRES_PORT')}/${getEnv('POSTGRES_DB')}`,
           autoLoadEntities: true,
           synchronize: true,
         };

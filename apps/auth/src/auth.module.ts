@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
 import {
   Chat,
   SharedModule,
@@ -16,6 +15,7 @@ import {
 } from '@app/shared';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
 import { JwtStrategy } from './jwt.strategy';
 
@@ -28,6 +28,8 @@ import { JwtStrategy } from './jwt.strategy';
       }),
       inject: [ConfigService],
     }),
+    SharedModule,
+    DbModule,
     TypeOrmModule.forFeature([
       Auth,
       User,
@@ -36,14 +38,11 @@ import { JwtStrategy } from './jwt.strategy';
       ConnectedUser,
       Room,
     ]),
-    DbModule,
-    SharedModule,
   ],
   controllers: [AuthController],
   providers: [
     JwtGuard,
     JwtStrategy,
-    AuthService,
     { provide: 'AuthServiceInterface', useClass: AuthService },
     {
       provide: 'UserRepositoryInterface',
@@ -54,6 +53,5 @@ import { JwtStrategy } from './jwt.strategy';
       useClass: SharedService,
     },
   ],
-  exports: [AuthService],
 })
 export class AuthModule {}

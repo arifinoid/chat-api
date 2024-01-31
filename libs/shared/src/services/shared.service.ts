@@ -9,11 +9,12 @@ export class SharedService {
     const USER = this.configService.get('RABBITMQ_USER');
     const PASSWORD = this.configService.get('RABBITMQ_PASSWORD');
     const HOST = this.configService.get('RABBITMQ_HOST');
+    const PORT = this.configService.get('RABBITMQ_PORT');
 
     return {
       transport: Transport.RMQ,
       options: {
-        urls: [`amqp://${USER}:${PASSWORD}@${HOST}`],
+        urls: [`amqp://${USER}:${PASSWORD}@${HOST}:${PORT}`],
         noAck: false,
         queue,
         queueOptions: {

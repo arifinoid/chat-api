@@ -11,7 +11,9 @@ services:
       - app-network
 
   rabbitmq:
-    image: 'rabbitmq:management'
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    container_name: rabbitmq
     volumes:
       - /var/lib/rabbitmq
     env_file:
